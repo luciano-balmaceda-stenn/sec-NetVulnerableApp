@@ -1,7 +1,9 @@
 ﻿using RestSharp; // Used in the Main method
 using Newtonsoft.Json; // Used in the DeserializeJson method
 using Ganss.XSS; // Vulnerable package, used in an unused method
-using AutoMapper; // Unused but imported, vulnerable package
+using AutoMapper; // Unused but, vulnerable package
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
 
 namespace VulnerableApp
 {
@@ -20,6 +22,9 @@ namespace VulnerableApp
 
             // Use the vulnerable Newtonsoft.Json package (CVE-2024-21907)
             DeserializeJson();
+
+            // Safe method below
+            JwtVerification();
         }
 
         // Vulnerability in Newtonsoft.Json package (CVE-2024-21907)
@@ -43,6 +48,33 @@ namespace VulnerableApp
             var sanitizer = new HtmlSanitizer();
             var sanitizedHtml = sanitizer.Sanitize("<script>alert('xss');</script>");
             Console.WriteLine($"This method uses HtmlSanitizer, but is never called. Output = {sanitizedHtml}");
+        }
+
+        static void JwtVerification()
+        {
+            string token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+
+            var handler = new JwtSecurityTokenHandler();
+
+            try
+            {
+                // This method will decode the JWT and ignore the signature verification
+                if (handler.CanReadToken(token))
+                {
+                    var jwtToken = handler.ReadJwtToken(token);
+
+                    Console.WriteLine("JWT decoded successfully.");
+                    Console.WriteLine("Claims:");
+                    foreach (var claim in jwtToken.Claims)
+                    {
+                        Console.WriteLine($"  {claim.Type}: {claim.Value}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to decode JWT: {ex.Message}");
+            }
         }
 
         // AutoMapper is added to the project but never used
